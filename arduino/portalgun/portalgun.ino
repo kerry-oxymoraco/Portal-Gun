@@ -1,11 +1,11 @@
-#include <QueueArray.h>
-
-#include <Wire.h> // Include the I2C library (required)
+//I had heavily edited the sketch for a proton pack by Count de Monet "https://github.com/CountDeMonet/ArduinoProtonPack/tree/master". At the time i didn't know enough 
+//to write my code from scratch. So any similarities are not meant to be hidden, and i thank him for his work, which helped me learn to code Arduino
 
 // for the sound board
 #include <SoftwareSerial.h>
 #include "Adafruit_Soundboard.h"
 
+//for the neopixels
 #include <Adafruit_NeoPixel.h>
 
 // for led triggers
@@ -278,3 +278,4 @@ void setLightsState(int state)
   }
   NeoPixels.show();
 }
+
