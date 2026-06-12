@@ -1,9 +1,7 @@
-#include <Wire.h> // Include the I2C library (required)
 // for the sound board
 #include <SoftwareSerial.h>
 #include "Adafruit_Soundboard.h"
 #include <Adafruit_NeoPixel.h>
-#include <Adafruit_DRV2605.h> //haptic driver board
 
 // rumble motor pin (transistor on D3) - circuit not yet built, reserved for future
 // #define RUMBLE_MOTOR 3
@@ -57,10 +55,6 @@ char cancelportal[] =         "T04     WAV";
 char powerdown[] =            "T05     WAV";
 char alivesong[] =            "T06     OGG";
 
-//Adafruit DRV2605 setup for haptic motor feedback
-Adafruit_DRV2605 drv;
-bool drvReady = false;  // tracks whether DRV2605 initialized successfully
-
 // Arduino setup function
 void setup() {
   Serial.begin(9600);
@@ -96,16 +90,6 @@ void setup() {
   pinMode(ORANGEBTN, INPUT_PULLUP);
   pinMode(CANCELBTN, INPUT_PULLUP);
 
-  // Adafruit DRV2605 setup for haptic motor feedback
-  // only initialize if the chip is present on I2C
-  if (drv.begin()) {
-    drvReady = true;
-    drv.selectLibrary(1);
-    drv.setMode(DRV2605_MODE_INTTRIG);
-    Serial.println("DRV2605 ready");
-  } else {
-    Serial.println("DRV2605 not found - skipping haptic");
-  }
   // raw serial test - send L command and print whatever comes back
   Serial.println("Testing soundboard raw...");
   ss.println("L");
@@ -122,48 +106,6 @@ void setup() {
   }
   Serial.println("Setup complete");
 }
-
-/* ************* Haptic Board Helper Functions ************ */
-
-// fire: strong jolt, then stacked buzz sustain, then fade down
-void hapticFire() {
-  if (!drvReady) return;
-  drv.setWaveform(0, 1);   // strong click 100% - initial jolt
-  drv.setWaveform(1, 47);  // buzz 100%
-  drv.setWaveform(2, 47);  // buzz 100% - stacked for sustain
-  drv.setWaveform(3, 47);  // buzz 100% - stacked for sustain
-  drv.setWaveform(4, 49);  // buzz 60% - begin fade
-  drv.setWaveform(5, 50);  // buzz 40%
-  drv.setWaveform(6, 51);  // buzz 20% - fade out
-  drv.setWaveform(7, 0);   // end
-  drv.go();
-}
-
-// power on/off: single strong click
-void hapticPower() {
-  if (!drvReady) return;
-  drv.setWaveform(0, 1);   // strong click 100%
-  drv.setWaveform(1, 0);   // end
-  drv.go();
-}
-
-// cancel: long double sharp click
-void hapticCancel() {
-  if (!drvReady) return;
-  drv.setWaveform(0, 37);  // long double sharp click strong 100%
-  drv.setWaveform(1, 0);   // end
-  drv.go();
-}
-
-
-
-// rumble motor kick - reserved for future transistor circuit on D3
-// void rumbleKick() {
-//   analogWrite(RUMBLE_MOTOR, 255);
-//   delay(150);
-//   analogWrite(RUMBLE_MOTOR, 80);
-// }
-
 
 /* ************* Audio Board Helper Functions ************* */
 // helper function to play a track by name on the audio board
@@ -238,14 +180,12 @@ void loop() {
     analogWrite(ObtnLed, 200); // turn orange button led on
     analogWrite(WbtnLed, 200); // turn white cancel button led on
     playAudio(powerup, playing);
-    hapticPower();
   }
 
   // if we are powered up and turn the power switch off then power down
   if (PowerSw == 1 && Power == true) {
     Power = false;
     playAudio(powerdown, playing);
-    hapticPower();
     analogWrite(Leds, 0);    // turn 3 red leds off
     analogWrite(BbtnLed, 0); // turn blue button led off
     analogWrite(ObtnLed, 0); // turn orange button led off
@@ -259,7 +199,6 @@ void loop() {
     Firing = true;
     Portal = true;
     playAudio(bluefire, playing);
-    hapticFire();
     setLightsState(1); //set light to blue
 
   } else {
@@ -273,7 +212,6 @@ void loop() {
     Firing = true;
     Portal = true;
     playAudio(orangefire, playing);
-    hapticFire();
     setLightsState(0); //set lights to orange
 
   } else {
@@ -287,7 +225,6 @@ void loop() {
      Serial.println("White cancel triggered");   Firing = true;
     Portal = false;
     playAudio(cancelportal, playing);
-    hapticCancel();
     setLightsState(2); //set light to off
 
   } else {
